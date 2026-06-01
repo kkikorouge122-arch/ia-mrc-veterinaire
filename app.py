@@ -62,11 +62,11 @@ st.markdown("""
         font-size: 14px;
     }
 </style>
-""", unsafe_base64=True)
+""", unsafe_allow_html=True)
 
 # Header de l'application
-st.markdown("<h1 style='text-align: center; color: #00D2FF; font-weight: 800; font-size: 2.5rem; margin-bottom: 5px;'>🐾 VET-AI CLINIC</h1>", unsafe_base64=True)
-st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.1rem; margin-bottom: 30px;'>Plateforme décisionnelle de pointe • Stadification de la MRC Féline</p>", unsafe_base64=True)
+st.markdown("<h1 style='text-align: center; color: #00D2FF; font-weight: 800; font-size: 2.5rem; margin-bottom: 5px;'>🐾 VET-AI CLINIC</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.1rem; margin-bottom: 30px;'>Plateforme décisionnelle de pointe • Stadification de la MRC Féline</p>", unsafe_allow_html=True)
 
 # Chargement de l'IA en arrière-plan
 @st.cache_resource
@@ -76,7 +76,7 @@ def get_cached_model():
 model, feature_names = get_cached_model()
 
 # Zone de saisie utilisateur
-st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px;'>📋 Paramètres du Patient</h3>", unsafe_base64=True)
+st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px;'>📋 Paramètres du Patient</h3>", unsafe_allow_html=True)
 
 # Layout adaptatif en deux colonnes
 col1, col2 = st.columns(2)
@@ -91,16 +91,16 @@ with col2:
     uree = np.round(st.number_input("⚗️ Urée Sérique (g/L)", min_value=0.1, max_value=4.0, value=0.4, step=0.1), 2)
     hemo = st.number_input("📉 Hémoglobine (g/dL)", min_value=5.0, max_value=18.0, value=12.0, step=0.5)
 
-st.markdown("<div style='margin-top: 20px;'></div>", unsafe_base64=True)
+st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 
 # Bouton de traitement
 if st.button("🧬 LANCER L'ANALYSE PRÉDICTIVE", use_container_width=True):
     # Simulation d'un loader haut de gamme
     with st.spinner("Calcul des probabilités cliniques..."):
         input_data = [[age, pa, du, creat, uree, hemo]]
-        prediction = model.predict(input_data)[0]
+        prediction = model.predict(input_data)
         
-    st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-top: 30px;'>🎯 Verdict de l'Intelligence Artificielle</h3>", unsafe_base64=True)
+    st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-top: 30px;'>🎯 Verdict de l'Intelligence Artificielle</h3>", unsafe_allow_html=True)
     
     # Affichage personnalisé avec les cartes CSS de couleurs vives
     if prediction == 0:
@@ -109,29 +109,29 @@ if st.button("🧬 LANCER L'ANALYSE PRÉDICTIVE", use_container_width=True):
             <h4 style='margin:0; font-weight:800; font-size:1.3rem;'>🎉 PATIENT SAIN / CONTRÔLE</h4>
             <p style='margin:5px 0 0 0; opacity:0.9;'>Le profil métabolique ne présente aucun marqueur de dysfonctionnement rénal chronique.</p>
         </div>
-        """, unsafe_base64=True)
+        """, unsafe_allow_html=True)
     elif prediction == 1:
         st.markdown("""
         <div class='card-precoce'>
             <h4 style='margin:0; font-weight:800; font-size:1.3rem;'>⚠️ MRC STADE PRÉCOCE (IRIS 1-2)</h4>
             <p style='margin:5px 0 0 0; opacity:0.9;'>Alerte de filtration. Les capacités de concentration du rein commencent à s'altérer de manière critique.</p>
         </div>
-        """, unsafe_base64=True)
+        """, unsafe_allow_html=True)
     else:
         st.markdown("""
         <div class='card-avance'>
             <h4 style='margin:0; font-weight:800; font-size:1.3rem;'>🚨 MRC STADE AVANCÉ (IRIS 3-4)</h4>
             <p style='margin:5px 0 0 0; opacity:0.9;'>Urgence médicale. Forte dégradation fonctionnelle des néphrons associée à un risque majeur d'urémie clinique.</p>
         </div>
-        """, unsafe_base64=True)
+        """, unsafe_allow_html=True)
         
     # Recommandations Médicales
-    st.markdown("<h4 style='color: #00D2FF; margin-top:20px;'>💊 Protocole Médical Suggéré</h4>", unsafe_base64=True)
+    st.markdown("<h4 style='color: #00D2FF; margin-top:20px;'>💊 Protocole Médical Suggéré</h4>", unsafe_allow_html=True)
     traitements = obtenir_traitement(prediction, pa)
     for t in traitements:
-        st.markdown(f"<div class='rx-item'>{t}</div>", unsafe_base64=True)
+        st.markdown(f"<div class='rx-item'>{t}</div>", unsafe_allow_html=True)
         
     # Graphique de validation scientifique
-    st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>📊 Poids Scientifique des Variables (Explicabilité)</h4>", unsafe_base64=True)
+    st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>📊 Poids Scientifique des Variables (Explicabilité)</h4>", unsafe_allow_html=True)
     fig = generate_importance_plot(model, feature_names)
     st.pyplot(fig)
