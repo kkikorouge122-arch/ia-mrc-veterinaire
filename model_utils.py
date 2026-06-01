@@ -133,4 +133,5 @@ def generer_pdf_clinique(age, pa, du, creat, uree, hemo, diagnostic, traitements
     pdf.set_text_color(150, 150, 150)
     pdf.multi_cell(180, 5, nettoyer_texte("Avertissement scientifique : Ce rapport est un outil d'aide a la decision base sur des arbres de probabilites (Random Forest). Il ne remplace en aucun cas l'expertise clinique finale du medecin veterinaire praticien."))
     
-    return pdf.output(dest="S")
+   return bytes(pdf.output())
+
