@@ -113,7 +113,8 @@ st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 if st.button("🧬 LANCER L'ANALYSE PRÉDICTIVE", use_container_width=True):
     with st.spinner("Calcul des probabilités cliniques..."):
         input_data = [[age, pa, du, creat, uree, hemo]]
-        prediction = model.predict(input_data)
+       prediction = model.predict(input_data)[0]
+
         
     st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-top: 30px;'>🎯 Verdict de l'Intelligence Artificielle</h3>", unsafe_allow_html=True)
     
