@@ -66,7 +66,6 @@ def obtenir_traitement(stade, pa):
     return recommandations
 
 def nettoyer_texte(texte):
-    """Remplace les caracteres accentues pour eviter les plantages FPDF standard"""
     remplacements = {
         'é': 'e', 'è': 'e', 'à': 'a', 'ù': 'u', 'ç': 'c', 
         'â': 'a', 'ê': 'e', 'î': 'i', 'ô': 'o', 'û': 'u',
@@ -74,7 +73,6 @@ def nettoyer_texte(texte):
     }
     for accent, lettre in remplacements.items():
         texte = texte.replace(accent, lettre)
-    # Forcer l'encodage standard
     return texte.encode('latin-1', 'replace').decode('latin-1')
 
 def generer_pdf_clinique(age, pa, du, creat, uree, hemo, diagnostic, traitements):
@@ -84,49 +82,49 @@ def generer_pdf_clinique(age, pa, du, creat, uree, hemo, diagnostic, traitements
     # En-tête Médical
     pdf.set_font("Helvetica", "B", 16)
     pdf.set_text_color(0, 102, 255)
-    pdf.cell(0, 10, nettoyer_texte("RAPPORT MEDICAL DECISIONNEL - VET-AI"), ln=True, align="C")
+    pdf.cell(190, 10, nettoyer_texte("RAPPORT MEDICAL DECISIONNEL - VET-AI"), ln=True, align="C")
     pdf.ln(5)
     
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(100, 100, 100)
-    pdf.cell(0, 5, nettoyer_texte("Genere automatiquement par l'application d'Intelligence Artificielle"), ln=True, align="C")
+    pdf.cell(190, 5, nettoyer_texte("Genere automatiquement par l'application d'Intelligence Artificielle"), ln=True, align="C")
     pdf.line(10, 30, 200, 30)
     pdf.ln(10)
     
     # Section 1 : Paramètres du Patient
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 10, nettoyer_texte("1. Constantes Cliniques et Biologiques saisies :"), ln=True)
+    pdf.cell(190, 10, nettoyer_texte("1. Constantes Cliniques et Biologiques saisies :"), ln=True)
     pdf.set_font("Helvetica", "", 11)
-    pdf.cell(0, 7, nettoyer_texte(f"- Age du felin : {age} ans"), ln=True)
-    pdf.cell(0, 7, nettoyer_texte(f"- Pression Arterielle Systolique : {pa} mmHg"), ln=True)
-    pdf.cell(0, 7, nettoyer_texte(f"- Densite Urinaire (DU) : {du}"), ln=True)
-    pdf.cell(0, 7, nettoyer_texte(f"- Creatinine Serique : {creat} mg/L"), ln=True)
-    pdf.cell(0, 7, nettoyer_texte(f"- Uree Serique : {uree} g/L"), ln=True)
-    pdf.cell(0, 7, nettoyer_texte(f"- Hemoglobine : {hemo} g/dL"), ln=True)
+    pdf.cell(190, 7, nettoyer_texte(f"- Age du felin : {age} ans"), ln=True)
+    pdf.cell(190, 7, nettoyer_texte(f"- Pression Arterielle Systolique : {pa} mmHg"), ln=True)
+    pdf.cell(190, 7, nettoyer_texte(f"- Densite Urinaire (DU) : {du}"), ln=True)
+    pdf.cell(190, 7, nettoyer_texte(f"- Creatinine Serique : {creat} mg/L"), ln=True)
+    pdf.cell(190, 7, nettoyer_texte(f"- Uree Serique : {uree} g/L"), ln=True)
+    pdf.cell(190, 7, nettoyer_texte(f"- Hemoglobine : {hemo} g/dL"), ln=True)
     pdf.ln(5)
     
     # Section 2 : Verdict IA
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 10, nettoyer_texte("2. Diagnostic calcule par le Modele Machine Learning :"), ln=True)
+    pdf.cell(190, 10, nettoyer_texte("2. Diagnostic calcule par le Modele Machine Learning :"), ln=True)
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(220, 50, 50)
-    pdf.cell(0, 8, nettoyer_texte(f"VERDICT : {diagnostic.upper()}"), ln=True)
+    pdf.cell(190, 8, nettoyer_texte(f"VERDICT : {diagnostic.upper()}"), ln=True)
     pdf.ln(5)
     
     # Section 3 : Traitements
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 10, nettoyer_texte("3. Orientations therapeutiques suggerees :"), ln=True)
+    pdf.cell(190, 10, nettoyer_texte("3. Orientations therapeutiques suggerees :"), ln=True)
     pdf.set_font("Helvetica", "", 10)
     for t in traitements:
         texte_nettoye = t.lstrip("- ")
-        # Sécurisation complète de la cellule de paragraphe
-        pdf.multi_cell(0, 6, nettoyer_texte(f"* {texte_nettoye}"))
+        # Utilisation d'une largeur fixe sécurisée de 190 mm au lieu de 0
+        pdf.multi_cell(190, 6, nettoyer_texte(f"* {texte_nettoye}"))
         
     pdf.ln(15)
     pdf.set_font("Helvetica", "I", 9)
     pdf.set_text_color(150, 150, 150)
-    pdf.multi_cell(0, 5, nettoyer_texte("Avertissement scientifique : Ce rapport est un outil d'aide a la decision base sur des arbres de probabilites (Random Forest). Il ne remplace en aucun cas l'expertise clinique finale du medecin veterinaire praticien."))
+    pdf.multi_cell(190, 5, nettoyer_texte("Avertissement scientifique : Ce rapport est un outil d'aide a la decision base sur des arbres de probabilites (Random Forest). Il ne remplace en aucun cas l'expertise clinique finale du medecin veterinaire praticien."))
     
     return pdf.output(dest="S")
