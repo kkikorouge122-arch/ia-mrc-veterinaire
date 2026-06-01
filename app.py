@@ -35,7 +35,7 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(0, 210, 255, 0.5);
     }
     
-    /* Design spécifique pour le bouton de téléchargement PDF (Streamlit utilise des balises a) */
+    /* Design spécifique pour le bouton de téléchargement PDF */
     div.stDownloadButton > button {
         background: linear-gradient(135deg, #FF9900 0%, #FF5500 100%) !important;
         color: white !important;
@@ -113,8 +113,7 @@ st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 if st.button("🧬 LANCER L'ANALYSE PRÉDICTIVE", use_container_width=True):
     with st.spinner("Calcul des probabilités cliniques..."):
         input_data = [[age, pa, du, creat, uree, hemo]]
-       prediction = model.predict(input_data)[0]
-
+        prediction = model.predict(input_data)[0]
         
     st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-top: 30px;'>🎯 Verdict de l'Intelligence Artificielle</h3>", unsafe_allow_html=True)
     
@@ -152,7 +151,7 @@ if st.button("🧬 LANCER L'ANALYSE PRÉDICTIVE", use_container_width=True):
     fig = generate_importance_plot(model, feature_names)
     st.pyplot(fig)
     
-    # Génération et téléchargement du PDF (Bouton Orange Vif)
+    # Génération et téléchargement du PDF
     st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>💾 Compte-rendu Clinique</h4>", unsafe_allow_html=True)
     stades_labels = {0: "Sain / Controle", 1: "MRC Stade Precoce (IRIS 1-2)", 2: "MRC Stade Avance (IRIS 3-4)"}
     
