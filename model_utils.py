@@ -1,166 +1,130 @@
-import streamlit as st
-from model_utils import load_and_train_model, generate_importance_plot, obtenir_traitement, generer_pdf_clinique
+import pandas as pd
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+from fpdf import FPDF
 
-# Configuration de la page Premium
-st.set_page_config(
-    page_title="VET-AI | Diagnostic MRC", 
-    page_icon="⚡", 
-    layout="centered"
-)
-
-# Injection CSS pour un design professionnel haut de gamme et des couleurs vives
-st.markdown("""
-<style>
-    /* Style global et police */
-    @import url('https://googleapis.com');
-    html, body, [data-testid="stWidgetLabel"] {
-        font-family: 'Inter', sans-serif !important;
+def load_and_train_model():
+    np.random.seed(42)
+    n_samples = 300
+    data = {
+        'Age': np.random.randint(2, 18, n_samples),
+        'Pression_Arterielle': np.random.randint(110, 200, n_samples),
+        'Densite_Urinaire': np.random.choice([1.010, 1.020, 1.035, 1.045], n_samples, p=[0.2, 0.3, 0.3, 0.2]),
+        'Creatinine_mg_L': np.random.uniform(8.0, 50.0, n_samples),
+        'Uree_g_L': np.random.uniform(0.2, 2.5, n_samples),
+        'Hemoglobine_g_dL': np.random.uniform(7.0, 15.0, n_samples)
     }
+    df = pd.DataFrame(data)
     
-    /* Design des boutons principaux */
-    div.stButton > button:first-child {
-        background: linear-gradient(135deg, #00D2FF 0%, #0066FF 100%);
-        color: white;
-        border: none;
-        padding: 14px 20px;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 16px;
-        box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
-        transition: all 0.3s ease;
-    }
-    div.stButton > button:first-child:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 210, 255, 0.5);
-    }
-    
-    /* Design spécifique pour le bouton de téléchargement PDF */
-    div.stDownloadButton > button {
-        background: linear-gradient(135deg, #FF9900 0%, #FF5500 100%) !important;
-        color: white !important;
-        border: none !important;
-        padding: 14px 20px !important;
-        border-radius: 12px !important;
-        font-weight: 600 !important;
-        font-size: 16px !important;
-        box-shadow: 0 4px 15px rgba(255, 153, 0, 0.3) !important;
-    }
-    div.stDownloadButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(255, 153, 0, 0.5) !important;
-    }
-    
-    /* Cartes personnalisées pour l'affichage des résultats */
-    .card-sain {
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-        padding: 20px; border-radius: 16px; color: white; margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
-    }
-    .card-precoce {
-        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-        padding: 20px; border-radius: 16px; color: white; margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
-    }
-    .card-avance {
-        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-        padding: 20px; border-radius: 16px; color: white; margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
-    }
-    
-    /* Traitement et recommandations listes */
-    .rx-item {
-        background-color: #1E293B;
-        border-left: 4px solid #00D2FF;
-        padding: 12px 16px;
-        border-radius: 0 12px 12px 0;
-        margin-bottom: 10px;
-        font-size: 14px;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Header de l'application
-st.markdown("<h1 style='text-align: center; color: #00D2FF; font-weight: 800; font-size: 2.5rem; margin-bottom: 5px;'>🐾 VET-AI CLINIC</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.1rem; margin-bottom: 30px;'>Plateforme décisionnelle de pointe • Stadification de la MRC Féline</p>", unsafe_allow_html=True)
-
-# Chargement de l'IA en arrière-plan
-@st.cache_resource
-def get_cached_model():
-    return load_and_train_model()
-
-model, feature_names = get_cached_model()
-
-# Zone de saisie utilisateur
-st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px;'>📋 Paramètres du Patient</h3>", unsafe_allow_html=True)
-
-# Layout adaptatif en deux colonnes
-col1, col2 = st.columns(2)
-
-with col1:
-    age = st.slider("📆 Âge du félin (années)", 1, 22, 10)
-    pa = st.slider("💓 Pression Artérielle Systolique (mmHg)", 90, 220, 130)
-    du = st.selectbox("🧪 Densité Urinaire (DU)", [1.010, 1.020, 1.035, 1.045], index=2)
-
-with col2:
-    creat = st.number_input("🩸 Créatinine Sérique (mg/L)", min_value=5.0, max_value=80.0, value=14.0, step=1.0)
-    uree = np.round(st.number_input("⚗️ Urée Sérique (g/L)", min_value=0.1, max_value=4.0, value=0.4, step=0.1), 2)
-    hemo = st.number_input("📉 Hémoglobine (g/dL)", min_value=5.0, max_value=18.0, value=12.0, step=0.5)
-
-st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-
-# Bouton de traitement
-if st.button("🧬 LANCER L'ANALYSE PRÉDICTIVE", use_container_width=True):
-    with st.spinner("Calcul des probabilités cliniques..."):
-        input_data = [[age, pa, du, creat, uree, hemo]]
-        prediction = model.predict(input_data)[0]
+    def definir_stade(row):
+        if row['Creatinine_mg_L'] > 28 and row['Densite_Urinaire'] < 1.035: return 2
+        elif row['Creatinine_mg_L'] > 16 and row['Densite_Urinaire'] < 1.035: return 1
+        else: return 0
         
-    st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-top: 30px;'>🎯 Verdict de l'Intelligence Artificielle</h3>", unsafe_allow_html=True)
+    df['Stade_IRIS'] = df.apply(definir_stade, axis=1)
+    X = df.drop('Stade_IRIS', axis=1)
+    y = df['Stade_IRIS']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
     
-    # Affichage personnalisé selon le diagnostic
-    if prediction == 0:
-        st.markdown("""
-        <div class='card-sain'>
-            <h4 style='margin:0; font-weight:800; font-size:1.3rem;'>🎉 PATIENT SAIN / CONTRÔLE</h4>
-            <p style='margin:5px 0 0 0; opacity:0.9;'>Le profil métabolique ne présente aucun marqueur de dysfonctionnement rénal chronique.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    elif prediction == 1:
-        st.markdown("""
-        <div class='card-precoce'>
-            <h4 style='margin:0; font-weight:800; font-size:1.3rem;'>⚠️ MRC STADE PRÉCOCE (IRIS 1-2)</h4>
-            <p style='margin:5px 0 0 0; opacity:0.9;'>Alerte de filtration. Les capacités de concentration du rein commencent à s'altérer de manière critique.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class='card-avance'>
-            <h4 style='margin:0; font-weight:800; font-size:1.3rem;'>🚨 MRC STADE AVANCÉ (IRIS 3-4)</h4>
-            <p style='margin:5px 0 0 0; opacity:0.9;'>Urgence médicale. Forte dégradation fonctionnelle des néphrons associée à un risque majeur d'urémie clinique.</p>
-        </div>
-        """, unsafe_allow_html=True)
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    return model, X.columns.tolist()
+
+def generate_importance_plot(model, feature_names):
+    importances = model.feature_importances_
+    indices = np.argsort(importances)
+    
+    plt.style.use('dark_background')
+    fig, ax = plt.subplots(figsize=(6, 3.5))
+    fig.patch.set_facecolor('#0F172A')
+    ax.set_facecolor('#1E293B')
+    
+    couleurs_barres = ['#1E293B' if i < len(indices)-2 else '#00D2FF' for i in range(len(indices))]
+    
+    ax.barh([feature_names[i] for i in indices], importances[indices], color=couleurs_barres, edgecolor='#00D2FF', alpha=0.9)
+    ax.set_xlabel("Importance relative", color='#94A3B8', fontsize=10)
+    ax.tick_params(colors='#94A3B8', labelsize=9)
+    ax.grid(axis='x', linestyle='--', alpha=0.2)
+    
+    for spine in ['top', 'right']:
+        ax.spines[spine].set_visible(False)
         
-    # Recommandations Médicales
-    st.markdown("<h4 style='color: #00D2FF; margin-top:20px;'>💊 Protocole Médical Suggéré</h4>", unsafe_allow_html=True)
-    traitements = obtenir_traitement(prediction, pa)
+    plt.tight_layout()
+    return fig
+
+def obtenir_traitement(stade, pa):
+    recommandations = []
+    if stade == 0: return ["Animal cliniquement sain.", "Planification du suivi geriatrique annuel standard."]
+    if stade == 1:
+        recommandations.extend(["Transition progressive vers une alimentation renale stricte (faible teneur en phosphore).", "Augmentation de l'apport hydrique (recours exclusif a des fontaines a eau et alimentation humide)."])
+    if stade == 2:
+        recommandations.extend(["ALERTE CRITIQUE : Evaluation immediate d'une crise uremique aigue.", "Administration de chelateurs de phosphore intestinaux (ex: Ipakitine / Pronefra).", "Surveillance rapprochee de la lignee rouge (hematocrite) face au risque d'anemie non regenerative."])
+    if pa > 160:
+        recommandations.append("HYPERTENSION SYSTEMIQUE : Instaurer sans delai un traitement antihypertenseur (ex: Amlodipine ou Telmisartan).")
+    return recommandations
+
+def nettoyer_texte(texte):
+    remplacements = {
+        'é': 'e', 'è': 'e', 'à': 'a', 'ù': 'u', 'ç': 'c', 
+        'â': 'a', 'ê': 'e', 'î': 'i', 'ô': 'o', 'û': 'u',
+        '°': ' ', '•': '*', '’': "'", '«': '"', '»': '"'
+    }
+    for accent, lettre in remplacements.items():
+        texte = texte.replace(accent, lettre)
+    return texte.encode('latin-1', 'replace').decode('latin-1')
+
+def generer_pdf_clinique(age, pa, du, creat, uree, hemo, diagnostic, traitements):
+    pdf = FPDF()
+    pdf.add_page()
+    
+    pdf.set_margins(15, 15, 15)
+    
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.set_text_color(0, 102, 255)
+    pdf.cell(180, 10, nettoyer_texte("RAPPORT MEDICAL DECISIONNEL - VET-AI"), align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+    
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(180, 5, nettoyer_texte("Genere automatiquement par l'application d'Intelligence Artificielle"), align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.line(15, 35, 195, 35)
+    pdf.ln(10)
+    
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(180, 10, nettoyer_texte("1. Constantes Cliniques et Biologiques saisies :"), new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(180, 7, nettoyer_texte(f"- Age du felin : {age} ans"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(180, 7, nettoyer_texte(f"- Pression Arterielle Systolique : {pa} mmHg"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(180, 7, nettoyer_texte(f"- Densite Urinaire (DU) : {du}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(180, 7, nettoyer_texte(f"- Creatinine Serique : {creat} mg/L"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(180, 7, nettoyer_texte(f"- Uree Serique : {uree} g/L"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(180, 7, nettoyer_texte(f"- Hemoglobine : {hemo} g/dL"), new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+    
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(180, 10, nettoyer_texte("2. Diagnostic calcule par le Modele Machine Learning :"), new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_text_color(220, 50, 50)
+    pdf.cell(180, 8, nettoyer_texte(f"VERDICT : {diagnostic.upper()}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+    
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(180, 10, nettoyer_texte("3. Orientations therapeutiques suggerees :"), new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.set_font("Helvetica", "", 10)
     for t in traitements:
-        st.markdown(f"<div class='rx-item'>{t}</div>", unsafe_allow_html=True)
+        texte_nettoye = t.lstrip("- ")
+        pdf.multi_cell(180, 6, nettoyer_texte(f"* {texte_nettoye}"))
         
-    # Graphique de validation scientifique
-    st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>📊 Poids Scientifique des Variables (Explicabilité)</h4>", unsafe_allow_html=True)
-    fig = generate_importance_plot(model, feature_names)
-    st.pyplot(fig)
+    pdf.ln(10)
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.set_text_color(150, 150, 150)
+    pdf.multi_cell(180, 5, nettoyer_texte("Avertissement scientifique : Ce rapport est un outil d'aide a la decision base sur des arbres de probabilites (Random Forest). Il ne remplace en aucun cas l'expertise clinique finale du medecin veterinaire praticien."))
     
-    # Génération et téléchargement du PDF
-    st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>💾 Compte-rendu Clinique</h4>", unsafe_allow_html=True)
-    stades_labels = {0: "Sain / Controle", 1: "MRC Stade Precoce (IRIS 1-2)", 2: "MRC Stade Avance (IRIS 3-4)"}
-    
-    pdf_bytes = generer_pdf_clinique(age, pa, du, creat, uree, hemo, stades_labels[prediction], traitements)
-    
-    st.download_button(
-        label="📥 Télécharger le Rapport Médical (PDF)",
-        data=pdf_bytes,
-        file_name="Rapport_VET-AI_Patient.pdf",
-        mime="application/pdf",
-        use_container_width=True
-    )
+    return bytes(pdf.output())
