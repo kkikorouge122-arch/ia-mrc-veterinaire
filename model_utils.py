@@ -36,13 +36,11 @@ def generate_importance_plot(model, feature_names):
     importances = model.feature_importances_
     indices = np.argsort(importances)
     
-    # Configuration du style sombre pour correspondre au thème pro
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(6, 3.5))
     fig.patch.set_facecolor('#0F172A')
     ax.set_facecolor('#1E293B')
     
-    # Couleurs vives néon pour le graphique scientifique
     couleurs_barres = ['#1E293B' if i < len(indices)-2 else '#00D2FF' for i in range(len(indices))]
     
     ax.barh([feature_names[i] for i in indices], importances[indices], color=couleurs_barres, edgecolor='#00D2FF', alpha=0.9)
@@ -50,7 +48,6 @@ def generate_importance_plot(model, feature_names):
     ax.tick_params(colors='#94A3B8', labelsize=9)
     ax.grid(axis='x', linestyle='--', alpha=0.2)
     
-    # Suppression des bordures inutiles
     for spine in ['top', 'right']:
         ax.spines[spine].set_visible(False)
         
@@ -59,64 +56,77 @@ def generate_importance_plot(model, feature_names):
 
 def obtenir_traitement(stade, pa):
     recommandations = []
-    if stade == 0: return ["Animal cliniquement sain.", "Planification du suivi gériatrique annuel standard."]
+    if stade == 0: return ["Animal cliniquement sain.", "Planification du suivi geriatrique annuel standard."]
     if stade == 1:
-        recommandations.extend(["Transition progressive vers une alimentation rénale stricte (faible teneur en phosphore).", "Augmentation de l'apport hydrique (recours exclusif à des fontaines à eau et alimentation humide)."])
+        recommandations.extend(["Transition progressive vers une alimentation renale stricte (faible teneur en phosphore).", "Augmentation de l'apport hydrique (recours exclusif a des fontaines a eau et alimentation humide)."])
     if stade == 2:
-        recommandations.extend(["ALERTE CRITIQUE : Évaluation immédiate d'une crise urémique aiguë.", "Administration de chélateurs de phosphore intestinaux (ex: Ipakitine / Pronefra).", "Surveillance rapprochée de la lignée rouge (hématocrite) face au risque d'anémie non régénérative."])
+        recommandations.extend(["ALERTE CRITIQUE : Evaluation immediate d'une crise uremique aigue.", "Administration de chelateurs de phosphore intestinaux (ex: Ipakitine / Pronefra).", "Surveillance rapprochee de la lignee rouge (hematocrite) face au risque d'anemie non regenerative."])
     if pa > 160:
-        recommandations.append("HYPERTENSION SYSTÉMIQUE : Instaurer sans délai un traitement antihypertenseur (ex: Amlodipine ou Telmisartan).")
+        recommandations.append("HYPERTENSION SYSTEMIQUE : Instaurer sans delai un traitement antihypertenseur (ex: Amlodipine ou Telmisartan).")
     return recommandations
+
+def nettoyer_texte(texte):
+    """Remplace les caracteres accentues pour eviter les plantages FPDF standard"""
+    remplacements = {
+        'é': 'e', 'è': 'e', 'à': 'a', 'ù': 'u', 'ç': 'c', 
+        'â': 'a', 'ê': 'e', 'î': 'i', 'ô': 'o', 'û': 'u',
+        '°': ' ', '•': '*', '’': "'", '«': '"', '»': '"'
+    }
+    for accent, lettre in remplacements.items():
+        texte = texte.replace(accent, lettre)
+    # Forcer l'encodage standard
+    return texte.encode('latin-1', 'replace').decode('latin-1')
 
 def generer_pdf_clinique(age, pa, du, creat, uree, hemo, diagnostic, traitements):
     pdf = FPDF()
     pdf.add_page()
     
     # En-tête Médical
-    pdf.set_font("Arial", "B", 18)
-    pdf.set_text_color(0, 102, 255) # Bleu VET-AI
-    pdf.cell(0, 10, "RAPPORT MEDICAL DECISIONNEL - VET-AI", ln=True, align="C")
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.set_text_color(0, 102, 255)
+    pdf.cell(0, 10, nettoyer_texte("RAPPORT MEDICAL DECISIONNEL - VET-AI"), ln=True, align="C")
     pdf.ln(5)
     
-    pdf.set_font("Arial", "", 10)
+    pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(100, 100, 100)
-    pdf.cell(0, 5, "Genere automatiquement par l'application d'Intelligence Artificielle", ln=True, align="C")
+    pdf.cell(0, 5, nettoyer_texte("Genere automatiquement par l'application d'Intelligence Artificielle"), ln=True, align="C")
     pdf.line(10, 30, 200, 30)
     pdf.ln(10)
     
     # Section 1 : Paramètres du Patient
-    pdf.set_font("Arial", "B", 12)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 10, "1. Constantes Cliniques et Biologiques saisies :", ln=True)
-    pdf.set_font("Arial", "", 11)
-    pdf.cell(0, 7, f"- Age du felin : {age} ans", ln=True)
-    pdf.cell(0, 7, f"- Pression Arterielle Systolique : {pa} mmHg", ln=True)
-    pdf.cell(0, 7, f"- Densite Urinaire (DU) : {du}", ln=True)
-    pdf.cell(0, 7, f"- Creatinine Serique : {creat} mg/L", ln=True)
-    pdf.cell(0, 7, f"- Uree Serique : {uree} g/L", ln=True)
-    pdf.cell(0, 7, f"- Hemoglobine : {hemo} g/dL", ln=True)
+    pdf.cell(0, 10, nettoyer_texte("1. Constantes Cliniques et Biologiques saisies :"), ln=True)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 7, nettoyer_texte(f"- Age du felin : {age} ans"), ln=True)
+    pdf.cell(0, 7, nettoyer_texte(f"- Pression Arterielle Systolique : {pa} mmHg"), ln=True)
+    pdf.cell(0, 7, nettoyer_texte(f"- Densite Urinaire (DU) : {du}"), ln=True)
+    pdf.cell(0, 7, nettoyer_texte(f"- Creatinine Serique : {creat} mg/L"), ln=True)
+    pdf.cell(0, 7, nettoyer_texte(f"- Uree Serique : {uree} g/L"), ln=True)
+    pdf.cell(0, 7, nettoyer_texte(f"- Hemoglobine : {hemo} g/dL"), ln=True)
     pdf.ln(5)
     
     # Section 2 : Verdict IA
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "2. Diagnostic calcule par le Modele Machine Learning :", ln=True)
-    pdf.set_font("Arial", "B", 11)
-    pdf.set_text_color(220, 50, 50) # Rouge alerte
-    pdf.cell(0, 8, f"VERDICT : {diagnostic.upper()}", ln=True)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 10, nettoyer_texte("2. Diagnostic calcule par le Modele Machine Learning :"), ln=True)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_text_color(220, 50, 50)
+    pdf.cell(0, 8, nettoyer_texte(f"VERDICT : {diagnostic.upper()}"), ln=True)
     pdf.ln(5)
     
     # Section 3 : Traitements
-    pdf.set_font("Arial", "B", 12)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 10, "3. Orientations therapeutiques suggerees :", ln=True)
-    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 10, nettoyer_texte("3. Orientations therapeutiques suggerees :"), ln=True)
+    pdf.set_font("Helvetica", "", 10)
     for t in traitements:
         texte_nettoye = t.lstrip("- ")
-        pdf.multi_cell(0, 6, f"* {texte_nettoye}")
+        # Sécurisation complète de la cellule de paragraphe
+        pdf.multi_cell(0, 6, nettoyer_texte(f"* {texte_nettoye}"))
         
     pdf.ln(15)
-    pdf.set_font("Arial", "I", 9)
+    pdf.set_font("Helvetica", "I", 9)
     pdf.set_text_color(150, 150, 150)
-    pdf.multi_cell(0, 5, "Avertissement scientifique : Ce rapport est un outil d'aide a la decision base sur des arbres de probabilites (Random Forest). Il ne remplace en aucun cas l'expertise clinique finale du medecin veterinaire praticien.")
+    pdf.multi_cell(0, 5, nettoyer_texte("Avertissement scientifique : Ce rapport est un outil d'aide a la decision base sur des arbres de probabilites (Random Forest). Il ne remplace en aucun cas l'expertise clinique finale du medecin veterinaire praticien."))
     
     return pdf.output(dest="S")
