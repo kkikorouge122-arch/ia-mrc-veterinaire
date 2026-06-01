@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from fpdf import FPDF
 
 def load_and_train_model():
     np.random.seed(42)
@@ -66,3 +67,56 @@ def obtenir_traitement(stade, pa):
     if pa > 160:
         recommandations.append("HYPERTENSION SYSTÉMIQUE : Instaurer sans délai un traitement antihypertenseur (ex: Amlodipine ou Telmisartan).")
     return recommandations
+
+def generer_pdf_clinique(age, pa, du, creat, uree, hemo, diagnostic, traitements):
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # En-tête Médical
+    pdf.set_font("Arial", "B", 18)
+    pdf.set_text_color(0, 102, 255) # Bleu VET-AI
+    pdf.cell(0, 10, "RAPPORT MEDICAL DECISIONNEL - VET-AI", ln=True, align="C")
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", "", 10)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 5, "Genere automatiquement par l'application d'Intelligence Artificielle", ln=True, align="C")
+    pdf.line(10, 30, 200, 30)
+    pdf.ln(10)
+    
+    # Section 1 : Paramètres du Patient
+    pdf.set_font("Arial", "B", 12)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, "1. Constantes Cliniques et Biologiques saisies :", ln=True)
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(0, 7, f"- Age du felin : {age} ans", ln=True)
+    pdf.cell(0, 7, f"- Pression Arterielle Systolique : {pa} mmHg", ln=True)
+    pdf.cell(0, 7, f"- Densite Urinaire (DU) : {du}", ln=True)
+    pdf.cell(0, 7, f"- Creatinine Serique : {creat} mg/L", ln=True)
+    pdf.cell(0, 7, f"- Uree Serique : {uree} g/L", ln=True)
+    pdf.cell(0, 7, f"- Hemoglobine : {hemo} g/dL", ln=True)
+    pdf.ln(5)
+    
+    # Section 2 : Verdict IA
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "2. Diagnostic calcule par le Modele Machine Learning :", ln=True)
+    pdf.set_font("Arial", "B", 11)
+    pdf.set_text_color(220, 50, 50) # Rouge alerte
+    pdf.cell(0, 8, f"VERDICT : {diagnostic.upper()}", ln=True)
+    pdf.ln(5)
+    
+    # Section 3 : Traitements
+    pdf.set_font("Arial", "B", 12)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, "3. Orientations therapeutiques suggerees :", ln=True)
+    pdf.set_font("Arial", "", 10)
+    for t in traitements:
+        texte_nettoye = t.lstrip("- ")
+        pdf.multi_cell(0, 6, f"* {texte_nettoye}")
+        
+    pdf.ln(15)
+    pdf.set_font("Arial", "I", 9)
+    pdf.set_text_color(150, 150, 150)
+    pdf.multi_cell(0, 5, "Avertissement scientifique : Ce rapport est un outil d'aide a la decision base sur des arbres de probabilites (Random Forest). Il ne remplace en aucun cas l'expertise clinique finale du medecin veterinaire praticien.")
+    
+    return pdf.output(dest="S")
