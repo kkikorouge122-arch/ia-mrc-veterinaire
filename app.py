@@ -1,5 +1,5 @@
 import streamlit as st
-from model_utils import load_and_train_model, generate_importance_plot, obtenir_traitement
+from model_utils import load_and_train_model, generate_importance_plot, obtenir_traitement, generer_pdf_clinique
 import numpy as np
 
 # Configuration de la page Premium
@@ -33,6 +33,22 @@ st.markdown("""
     div.stButton > button:first-child:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(0, 210, 255, 0.5);
+    }
+    
+    /* Design spécifique pour le bouton de téléchargement PDF (Streamlit utilise des balises a) */
+    div.stDownloadButton > button {
+        background: linear-gradient(135deg, #FF9900 0%, #FF5500 100%) !important;
+        color: white !important;
+        border: none !important;
+        padding: 14px 20px !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        font-size: 16px !important;
+        box-shadow: 0 4px 15px rgba(255, 153, 0, 0.3) !important;
+    }
+    div.stDownloadButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(255, 153, 0, 0.5) !important;
     }
     
     /* Cartes personnalisées pour l'affichage des résultats */
@@ -95,14 +111,13 @@ st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 
 # Bouton de traitement
 if st.button("🧬 LANCER L'ANALYSE PRÉDICTIVE", use_container_width=True):
-    # Simulation d'un loader haut de gamme
     with st.spinner("Calcul des probabilités cliniques..."):
         input_data = [[age, pa, du, creat, uree, hemo]]
         prediction = model.predict(input_data)
         
     st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-top: 30px;'>🎯 Verdict de l'Intelligence Artificielle</h3>", unsafe_allow_html=True)
     
-    # Affichage personnalisé avec les cartes CSS de couleurs vives
+    # Affichage personnalisé selon le diagnostic
     if prediction == 0:
         st.markdown("""
         <div class='card-sain'>
@@ -135,3 +150,17 @@ if st.button("🧬 LANCER L'ANALYSE PRÉDICTIVE", use_container_width=True):
     st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>📊 Poids Scientifique des Variables (Explicabilité)</h4>", unsafe_allow_html=True)
     fig = generate_importance_plot(model, feature_names)
     st.pyplot(fig)
+    
+    # Génération et téléchargement du PDF (Bouton Orange Vif)
+    st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>💾 Compte-rendu Clinique</h4>", unsafe_allow_html=True)
+    stades_labels = {0: "Sain / Controle", 1: "MRC Stade Precoce (IRIS 1-2)", 2: "MRC Stade Avance (IRIS 3-4)"}
+    
+    pdf_bytes = generer_pdf_clinique(age, pa, du, creat, uree, hemo, stades_labels[prediction], traitements)
+    
+    st.download_button(
+        label="📥 Télécharger le Rapport Médical (PDF)",
+        data=pdf_bytes,
+        file_name="Rapport_VET-AI_Patient.pdf",
+        mime="application/pdf",
+        use_container_width=True
+    )
