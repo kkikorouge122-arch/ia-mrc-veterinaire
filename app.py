@@ -28,10 +28,11 @@ st.markdown("""
         background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
         padding: 20px; border-radius: 16px; color: white; margin-bottom: 20px;
     }
-    .rx-item {
-        background-color: #1E293B; border-left: 4px solid #00D2FF;
-        padding: 12px 16px; border-radius: 0 12px 12px 0; margin-bottom: 10px; font-size: 14px;
+   .rx-item  {
+    background-color: #1E293B; border-left: 4px solid #00D2FF;
+    padding: 12px 16px; border-radius: 0 12px 12px 0; margin-bottom: 10px; font-size: 14px;
     }
+
 </style>
 """, unsafe_allow_html=True)
 
