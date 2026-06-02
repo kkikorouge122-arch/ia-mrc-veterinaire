@@ -1,166 +1,100 @@
 import streamlit as st
-from model_utils import load_and_train_model, generate_importance_plot, obtenir_traitement, generer_pdf_clinique
-import numpy as np
+from model_utils import load_medical_cnn, predict_mri_image, obtenir_recommandations_neuro, generer_pdf_neuro
+from PIL import Image
 
-# Configuration de la page Premium
-st.set_page_config(
-    page_title="VET-AI | Diagnostic MRC", 
-    page_icon="⚡", 
-    layout="centered"
-)
+# Configuration de la page de Neuro-Oncologie
+st.set_page_config(page_title="VET-AI | Neuro-Vision", page_icon="🧠", layout="centered")
 
-# Injection CSS pour un design professionnel haut de gamme et des couleurs vives
+# Design CSS Premium à Couleurs Vives (Fonds Sombres et Néons)
 st.markdown("""
 <style>
-    /* Style global et police */
     @import url('https://googleapis.com');
-    html, body, [data-testid="stWidgetLabel"] {
-        font-family: 'Inter', sans-serif !important;
-    }
+    html, body, [data-testid="stWidgetLabel"] { font-family: 'Inter', sans-serif !important; }
     
-    /* Design des boutons principaux */
-    div.stButton > button:first-child {
-        background: linear-gradient(135deg, #00D2FF 0%, #0066FF 100%);
-        color: white;
-        border: none;
-        padding: 14px 20px;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 16px;
-        box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
-        transition: all 0.3s ease;
-    }
-    div.stButton > button:first-child:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 210, 255, 0.5);
-    }
-    
-    /* Design spécifique pour le bouton de téléchargement PDF */
+    /* Boutons de téléchargement */
     div.stDownloadButton > button {
         background: linear-gradient(135deg, #FF9900 0%, #FF5500 100%) !important;
-        color: white !important;
-        border: none !important;
-        padding: 14px 20px !important;
-        border-radius: 12px !important;
-        font-weight: 600 !important;
-        font-size: 16px !important;
+        color: white !important; border: none !important; padding: 14px 20px !important;
+        border-radius: 12px !important; font-weight: 600 !important; font-size: 16px !important;
         box-shadow: 0 4px 15px rgba(255, 153, 0, 0.3) !important;
     }
-    div.stDownloadButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(255, 153, 0, 0.5) !important;
-    }
     
-    /* Cartes personnalisées pour l'affichage des résultats */
-    .card-sain {
+    /* Cartes cliniques colorées */
+    .card-normal {
         background: linear-gradient(135deg, #10B981 0%, #059669 100%);
         padding: 20px; border-radius: 16px; color: white; margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
     }
-    .card-precoce {
-        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-        padding: 20px; border-radius: 16px; color: white; margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
-    }
-    .card-avance {
+    .card-tumor {
         background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
         padding: 20px; border-radius: 16px; color: white; margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
     }
-    
-    /* Traitement et recommandations listes */
     .rx-item {
-        background-color: #1E293B;
-        border-left: 4px solid #00D2FF;
-        padding: 12px 16px;
-        border-radius: 0 12px 12px 0;
-        margin-bottom: 10px;
-        font-size: 14px;
+        background-color: #1E293B; border-left: 4px solid #00D2FF;
+        padding: 12px 16px; border-radius: 0 12px 12px 0; margin-bottom: 10px; font-size: 14px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Header de l'application
-st.markdown("<h1 style='text-align: center; color: #00D2FF; font-weight: 800; font-size: 2.5rem; margin-bottom: 5px;'>🐾 VET-AI CLINIC</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.1rem; margin-bottom: 30px;'>Plateforme décisionnelle de pointe • Stadification de la MRC Féline</p>", unsafe_allow_html=True)
+# Titres principaux
+st.markdown("<h1 style='text-align: center; color: #00D2FF; font-weight: 800; font-size: 2.3rem;'>🧠 VET-AI NEURO-VISION</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.1rem; margin-bottom: 30px;'>Pipeline Deep Learning • Classification Automatique de Tumeurs Cerebrales (IRM)</p>", unsafe_allow_html=True)
 
-# Chargement de l'IA en arrière-plan
+# Chargement du modèle CNN en cache
 @st.cache_resource
-def get_cached_model():
-    return load_and_train_model()
+def get_cnn_model():
+    return load_medical_cnn()
 
-model, feature_names = get_cached_model()
+model = get_cnn_model()
 
-# Zone de saisie utilisateur
-st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px;'>📋 Paramètres du Patient</h3>", unsafe_allow_html=True)
+# Zone d'importation de l'image (Entièrement compatible avec les écrans tactiles Android)
+st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px;'>📁 Televersement du Cliche IRM</h3>", unsafe_allow_html=True)
+uploaded_file = st.file_uploader("Selectionnez une image de scanner ou d'IRM cerebrale (JPG, PNG)", type=["jpg", "jpeg", "png"])
 
-# Layout adaptatif en deux colonnes
-col1, col2 = st.columns(2)
-
-with col1:
-    age = st.slider("📆 Âge du félin (années)", 1, 22, 10)
-    pa = st.slider("💓 Pression Artérielle Systolique (mmHg)", 90, 220, 130)
-    du = st.selectbox("🧪 Densité Urinaire (DU)", [1.010, 1.020, 1.035, 1.045], index=2)
-
-with col2:
-    creat = st.number_input("🩸 Créatinine Sérique (mg/L)", min_value=5.0, max_value=80.0, value=14.0, step=1.0)
-    uree = np.round(st.number_input("⚗️ Urée Sérique (g/L)", min_value=0.1, max_value=4.0, value=0.4, step=0.1), 2)
-    hemo = st.number_input("📉 Hémoglobine (g/dL)", min_value=5.0, max_value=18.0, value=12.0, step=0.5)
-
-st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-
-# Bouton de traitement
-if st.button("🧬 LANCER L'ANALYSE PRÉDICTIVE", use_container_width=True):
-    with st.spinner("Calcul des probabilités cliniques..."):
-        input_data = [[age, pa, du, creat, uree, hemo]]
-        prediction = model.predict(input_data)[0]
-        
-    st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-top: 30px;'>🎯 Verdict de l'Intelligence Artificielle</h3>", unsafe_allow_html=True)
+if uploaded_file is not None:
+    # Affichage de l'image insérée par l'utilisateur
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption="Cliché IRM chargé avec succès pour l'analyse", use_container_width=True)
     
-    # Affichage personnalisé selon le diagnostic
+    st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+    
+    # Déclenchement automatique de l'inférence Deep Learning
+    with st.spinner("Analyse des convolutions spatiales de l'image..."):
+        prediction, confidence = predict_mri_image(model, image)
+        
+    st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-top: 20px;'>🎯 Verdict Diagnostique du Reseau (CNN)</h3>", unsafe_allow_html=True)
+    
+    labels = {0: "No Tumor (Cerveau Sain)", 1: "Tumor (Presence de Masse Tumorale)"}
+    
     if prediction == 0:
-        st.markdown("""
-        <div class='card-sain'>
-            <h4 style='margin:0; font-weight:800; font-size:1.3rem;'>🎉 PATIENT SAIN / CONTRÔLE</h4>
-            <p style='margin:5px 0 0 0; opacity:0.9;'>Le profil métabolique ne présente aucun marqueur de dysfonctionnement rénal chronique.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    elif prediction == 1:
-        st.markdown("""
-        <div class='card-precoce'>
-            <h4 style='margin:0; font-weight:800; font-size:1.3rem;'>⚠️ MRC STADE PRÉCOCE (IRIS 1-2)</h4>
-            <p style='margin:5px 0 0 0; opacity:0.9;'>Alerte de filtration. Les capacités de concentration du rein commencent à s'altérer de manière critique.</p>
+        st.markdown(f"""
+        <div class='card-normal'>
+            <h4 style='margin:0; font-weight:800;'>🎉 EXAMEN NORMAL : CLASSIFIE SAIN</h4>
+            <p style='margin:5px 0 0 0; opacity:0.9;'>Certitude algorithmique : {confidence:.2f}% • Aucune lesion expansive detectee.</p>
         </div>
         """, unsafe_allow_html=True)
     else:
-        st.markdown("""
-        <div class='card-avance'>
-            <h4 style='margin:0; font-weight:800; font-size:1.3rem;'>🚨 MRC STADE AVANCÉ (IRIS 3-4)</h4>
-            <p style='margin:5px 0 0 0; opacity:0.9;'>Urgence médicale. Forte dégradation fonctionnelle des néphrons associée à un risque majeur d'urémie clinique.</p>
+        st.markdown(f"""
+        <div class='card-tumor'>
+            <h4 style='margin:0; font-weight:800;'>🚨 ANOMALIE DETECTEE : TUMEUR CEREBRALE</h4>
+            <p style='margin:5px 0 0 0; opacity:0.9;'>Certitude algorithmique : {confidence:.2f}% • Suspicion immediate de processus tumoral.</p>
         </div>
         """, unsafe_allow_html=True)
         
-    # Recommandations Médicales
-    st.markdown("<h4 style='color: #00D2FF; margin-top:20px;'>💊 Protocole Médical Suggéré</h4>", unsafe_allow_html=True)
-    traitements = obtenir_traitement(prediction, pa)
-    for t in traitements:
-        st.markdown(f"<div class='rx-item'>{t}</div>", unsafe_allow_html=True)
+    # Affichage des recommandations cliniques de neurochirurgie
+    st.markdown("<h4 style='color: #00D2FF;'>💊 Orientations Cliniques Immediate</h4>", unsafe_allow_html=True)
+    recommandations = obtenir_recommandations_neuro(prediction)
+    for r in recommandations:
+        st.markdown(f"<div class='rx-item'>{r}</div>", unsafe_allow_html=True)
         
-    # Graphique de validation scientifique
-    st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>📊 Poids Scientifique des Variables (Explicabilité)</h4>", unsafe_allow_html=True)
-    fig = generate_importance_plot(model, feature_names)
-    st.pyplot(fig)
-    
-    # Génération et téléchargement du PDF
-    st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>💾 Compte-rendu Clinique</h4>", unsafe_allow_html=True)
-    stades_labels = {0: "Sain / Controle", 1: "MRC Stade Precoce (IRIS 1-2)", 2: "MRC Stade Avance (IRIS 3-4)"}
-    
-    pdf_bytes = generer_pdf_clinique(age, pa, du, creat, uree, hemo, stades_labels[prediction], traitements)
+    # Module d'impression du compte-rendu médical au format PDF
+    st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>💾 Archivage Academique</h4>", unsafe_allow_html=True)
+    pdf_label = "No Tumor" if prediction == 0 else "Tumor"
+    pdf_bytes = generer_pdf_neuro(pdf_label, confidence, recommandations)
     
     st.download_button(
-        label="📥 Télécharger le Rapport Médical (PDF)",
+        label="📥 Télécharger le Rapport d'Imagerie Officiel (PDF)",
         data=pdf_bytes,
-        file_name="Rapport_VET-AI_Patient.pdf",
+        file_name="Rapport_NeuroVision_Patient.pdf",
         mime="application/pdf",
         use_container_width=True
     )
