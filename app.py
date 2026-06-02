@@ -5,7 +5,7 @@ from PIL import Image
 # Configuration de la page de Neuro-Oncologie
 st.set_page_config(page_title="VET-AI | Neuro-Vision", page_icon="🧠", layout="centered")
 
-# Design CSS Premium à Couleurs Vives (Fonds Sombres et Néons)
+# Design CSS Premium à Couleurs Vives
 st.markdown("""
 <style>
     @import url('https://googleapis.com');
@@ -28,18 +28,16 @@ st.markdown("""
         background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
         padding: 20px; border-radius: 16px; color: white; margin-bottom: 20px;
     }
-   .rx-item {
-    background-color: #1E293B; 
-    border-left: 4px solid #00D2FF;
-    color: #FFFFFF !important; /* Force le texte en blanc pur */
-    font-weight: 600; /* Rend le texte plus épais et lisible */
-    padding: 12px 16px; 
-    border-radius: 0 12px 12px 0; 
-    margin-bottom: 10px; 
-    font-size: 14.5px;
+    
+    /* Boîtes de recommandations */
+    .rx-item {
+        background-color: #1E293B; border-left: 4px solid #00D2FF;
+        padding: 14px 16px; border-radius: 0 12px 12px 0; margin-bottom: 12px;
     }
-
-
+    .rx-text {
+        color: #FFFFFF !important; font-size: 14.5px !important;
+        font-weight: 600 !important; margin: 0 !important; padding: 0 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -47,54 +45,51 @@ st.markdown("""
 st.markdown("<h1 style='text-align: center; color: #00D2FF; font-weight: 800; font-size: 2.3rem;'>🧠 VET-AI NEURO-VISION</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.1rem; margin-bottom: 30px;'>Pipeline Deep Learning • Classification Automatique de Tumeurs Cerebrales (IRM)</p>", unsafe_allow_html=True)
 
-# Chargement du modèle CNN en cache
-#@st.cache_resource
-def get_cnn_model():
-    return load_medical_cnn()
+# Chargement direct sans st.cache_resource pour forcer l'actualisation
+model = load_medical_cnn()
 
-model = get_cnn_model()
-
-# Zone d'importation de l'image (Entièrement compatible avec les écrans tactiles Android)
+# Zone d'importation de l'image
 st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px;'>📁 Televersement du Cliche IRM</h3>", unsafe_allow_html=True)
 uploaded_file = st.file_uploader("Selectionnez une image de scanner ou d'IRM cerebrale (JPG, PNG)", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # Affichage de l'image insérée par l'utilisateur
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Cliché IRM chargé avec succès pour l'analyse", use_container_width=True)
     
     st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
     
-    # Déclenchement automatique de l'inférence Deep Learning
-    with st.spinner("Analyse des convolutions spatiales de l'image..."):
+    # Inférence directe
+    with st.spinner("Analyse des densites de l'image en cours..."):
         prediction, confidence = predict_mri_image(model, image)
         
     st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-top: 20px;'>🎯 Verdict Diagnostique du Reseau (CNN)</h3>", unsafe_allow_html=True)
     
-    labels = {0: "No Tumor (Cerveau Sain)", 1: "Tumor (Presence de Masse Tumorale)"}
-    
     if prediction == 0:
         st.markdown(f"""
         <div class='card-normal'>
-            <h4 style='margin:0; font-weight:800;'>🎉 EXAMEN NORMAL : CLASSIFIE SAIN</h4>
-            <p style='margin:5px 0 0 0; opacity:0.9;'>Certitude algorithmique : {confidence:.2f}% • Aucune lesion expansive detectee.</p>
+            <h4 style='margin:0; font-weight:800; color: white;'>🎉 EXAMEN NORMAL : CLASSIFIE SAIN</h4>
+            <p style='margin:5px 0 0 0; color: white; opacity:0.9;'>Certitude algorithmique : {confidence:.2f}% • Aucune lesion expansive detectee.</p>
         </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
         <div class='card-tumor'>
-            <h4 style='margin:0; font-weight:800;'>🚨 ANOMALIE DETECTEE : TUMEUR CEREBRALE</h4>
-            <p style='margin:5px 0 0 0; opacity:0.9;'>Certitude algorithmique : {confidence:.2f}% • Suspicion immediate de processus tumoral.</p>
+            <h4 style='margin:0; font-weight:800; color: white;'>🚨 ANOMALIE DETECTEE : TUMEUR CEREBRALE</h4>
+            <p style='margin:5px 0 0 0; color: white; opacity:0.9;'>Certitude algorithmique : {confidence:.2f}% • Suspicion immediate de processus tumoral.</p>
         </div>
         """, unsafe_allow_html=True)
         
-    # Affichage des recommandations cliniques de neurochirurgie
+    # Affichage des recommandations
     st.markdown("<h4 style='color: #00D2FF;'>💊 Orientations Cliniques Immediate</h4>", unsafe_allow_html=True)
     recommandations = obtenir_recommandations_neuro(prediction)
     for r in recommandations:
-        st.markdown(f"<div class='rx-item'>{r}</div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class='rx-item'>
+            <p class='rx-text'>{r}</p>
+        </div>
+        """, unsafe_allow_html=True)
         
-    # Module d'impression du compte-rendu médical au format PDF
+    # Module PDF
     st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>💾 Archivage Academique</h4>", unsafe_allow_html=True)
     pdf_label = "No Tumor" if prediction == 0 else "Tumor"
     pdf_bytes = generer_pdf_neuro(pdf_label, confidence, recommandations)
