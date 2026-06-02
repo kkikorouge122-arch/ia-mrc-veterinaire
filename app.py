@@ -41,13 +41,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Titres principaux
 st.markdown("<h1 style='text-align: center; color: #00D2FF; font-weight: 800; font-size: 2.3rem;'>🧠 VET-AI NEURO-VISION</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.1rem; margin-bottom: 30px;'>Pipeline Deep Learning • Classification Automatique de Tumeurs Cerebrales (IRM)</p>", unsafe_allow_html=True)
 
-model = load_medical_cnn()
+# Chargement à froid du modèle (Évite les blocages de cache mémoire)
+model_instance = load_medical_cnn()
 
-# Zone d'importation de l'image
 st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px;'>📁 Televersement du Cliche IRM</h3>", unsafe_allow_html=True)
 uploaded_file = st.file_uploader("Selectionnez une image de scanner ou d'IRM cerebrale (JPG, PNG)", type=["jpg", "jpeg", "png"])
 
@@ -57,28 +56,9 @@ if uploaded_file is not None:
     
     st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
     
-    # --- MODULE DE SÉCURITÉ SCIENTIFIQUE POUR LE JURY ---
-    st.markdown("<h4 style='color: #94A3B8;'>⚙️ Ajustement du Diagnostic (Contrôle Clinique)</h4>", unsafe_allow_html=True)
-    override_mode = st.radio(
-        "Si l'image comporte du bruit ou des écritures blanches qui faussent l'IA, forcez le mode :",
-        ["Analyse Automatique par l'IA", "Forcer Mode SAIN (Bandeau Vert)", "Forcer Mode TUMEUR (Bandeau Rouge)"],
-        index=0
-    )
-    
-    # Inférence
+    # Inférence automatique pure
     with st.spinner("Analyse des densites de l'image en cours..."):
-        prediction_auto, confidence_auto = predict_mri_image(model, image)
-    
-    # Application de la décision selon le choix (Auto ou Forçage manuel)
-    if override_mode == "Analyse Automatique par l'IA":
-        prediction = prediction_auto
-        confidence = confidence_auto
-    elif override_mode == "Forcer Mode SAIN (Bandeau Vert)":
-        prediction = 0
-        confidence = 98.45
-    else:
-        prediction = 1
-        confidence = 96.20
+        prediction, confidence = predict_mri_image(model_instance, image)
         
     st.markdown("<h3 style='color: #F1F5F9; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-top: 20px;'>🎯 Verdict Diagnostique du Reseau (CNN)</h3>", unsafe_allow_html=True)
     
@@ -97,17 +77,11 @@ if uploaded_file is not None:
         </div>
         """, unsafe_allow_html=True)
         
-    # Affichage des recommandations
     st.markdown("<h4 style='color: #00D2FF;'>💊 Orientations Cliniques Immediate</h4>", unsafe_allow_html=True)
     recommandations = obtenir_recommandations_neuro(prediction)
     for r in recommandations:
-        st.markdown(f"""
-        <div class='rx-item'>
-            <p class='rx-text'>{r}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div class='rx-item'><p class='rx-text'>{r}</p></div>", unsafe_allow_html=True)
         
-    # Module PDF
     st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>💾 Archivage Academique</h4>", unsafe_allow_html=True)
     pdf_label = "No Tumor" if prediction == 0 else "Tumor"
     pdf_bytes = generer_pdf_neuro(pdf_label, confidence, recommandations)
