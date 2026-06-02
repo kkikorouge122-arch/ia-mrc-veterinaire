@@ -23,7 +23,7 @@ def predict_mri_image(model, pil_image):
     homogeneity = graycoprops(glcm, 'homogeneity')[0, 0]
     
     # Logique de classification scientifique (Une texture très hétérogène/contrastée indique une masse tumorale)
-    if contrast > 40.0 or homogeneity < 0.35:
+    if contrast > 120.0 or homogeneity < 0.20:
         prediction = 1  # Tumor Detected
         confidence = 88.5 + min(10.0, contrast / 50.0)
     else:
