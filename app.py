@@ -48,7 +48,7 @@ st.markdown("<h1 style='text-align: center; color: #00D2FF; font-weight: 800; fo
 st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.1rem; margin-bottom: 30px;'>Pipeline Deep Learning • Classification Automatique de Tumeurs Cerebrales (IRM)</p>", unsafe_allow_html=True)
 
 # Chargement du modèle CNN en cache
-@st.cache_resource
+#@st.cache_resource
 def get_cnn_model():
     return load_medical_cnn()
 
