@@ -84,7 +84,10 @@ if uploaded_file is not None:
         
     st.markdown("<h4 style='color: #00D2FF; margin-top:30px;'>💾 Archivage Academique</h4>", unsafe_allow_html=True)
     pdf_label = "No Tumor" if prediction == 0 else "Tumor"
-    pdf_bytes = generer_pdf_neuro(pdf_label, confidence, recommandations)
+    
+    # Génération du PDF converti en type binaire exploitable par Streamlit
+    pdf_output = generer_pdf_neuro(pdf_label, confidence, recommandations)
+    pdf_bytes = bytes(pdf_output)
     
     st.download_button(
         label="📥 Télécharger le Rapport d'Imagerie Officiel (PDF)",
