@@ -1,6 +1,15 @@
+<<<<<<< HEAD
 Age,Pression_Arterielle,Densite_Urinaire,Creatinine_mg_L,Uree_g_L,Hemoglobine_g_dL
 12,145,1.020,22.5,0.8,11.2
 4,130,1.045,11.2,0.3,14.1
 15,175,1.012,38.1,1.9,8.5
 9,135,1.035,14.0,0.4,12.8
 16,165,1.010,45.0,2.2,7.9
+=======
+Age,Pression_Arterielle,Densite_Urinaire,Creatinine_mg_L,Uree_g_L,Hemoglobine_g_dL
+12,145,1.020,22.5,0.8,11.2
+4,130,1.045,11.2,0.3,14.1
+15,175,1.012,38.1,1.9,8.5
+9,135,1.035,14.0,0.4,12.8
+16,165,1.010,45.0,2.2,7.9
+>>>>>>> 6110e8b (Fix model_utils et ajout modele entraine)

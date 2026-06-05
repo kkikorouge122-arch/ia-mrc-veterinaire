@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 [theme]
 primaryColor = "#00D2FF"
 backgroundColor = "#0F172A"
@@ -5,3 +6,11 @@ secondaryBackgroundColor = "#1E293B"
 textColor = "#F8FAFC"
 font = "sans serif"
 
+=======
+[theme]
+primaryColor = "#3498db"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f8f9fa"
+textColor = "#2c3e50"
+font = "sans serif"
+>>>>>>> 6110e8b (Fix model_utils et ajout modele entraine)

@@ -13,16 +13,23 @@ import pickle
 
 # ─────────────────────────────────────────────
 # CONFIGURATION
+# Structure reelle :
+#   dataset/Training/glioma/
+#   dataset/Training/meningioma/
+#   dataset/Training/pituitary/
+#   dataset/Training/notumor/
+#   dataset/Testing/glioma/
+#   dataset/Testing/meningioma/
+#   dataset/Testing/pituitary/
+#   dataset/Testing/notumor/
 # ─────────────────────────────────────────────
-DATASET_PATH = "./dataset"
-IMG_SIZE     = (64, 64)
-MODEL_OUTPUT = "brain_tumor_model.pkl"
-
-# Structure :
-#   dataset/train/no/        → label 0 (sain)
-#   dataset/train/yes/**/    → label 1 (tumeur, tous sous-dossiers)
-#   dataset/test/no/         → label 0
-#   dataset/test/yes/**/     → label 1
+DATASET_PATH    = "./dataset"
+TRAIN_FOLDER    = "Training"
+TEST_FOLDER     = "Testing"
+TUMOR_CLASSES   = ["glioma", "meningioma", "pituitary"]  # label 1
+NOTUMOR_CLASS   = "notumor"                               # label 0
+IMG_SIZE        = (64, 64)
+MODEL_OUTPUT    = "brain_tumor_model.pkl"
 
 
 # ─────────────────────────────────────────────
@@ -52,46 +59,56 @@ def extraire_features(pil_image):
 
 
 # ─────────────────────────────────────────────
-# CHARGEMENT : parcourt récursivement un dossier
+# CHARGEMENT D'UN DOSSIER
 # ─────────────────────────────────────────────
-def charger_dossier_recursif(chemin_racine, label):
+def charger_dossier(chemin, label):
     X, y = [], []
     extensions = ('.jpg', '.jpeg', '.png', '.bmp')
 
-    for root, dirs, files in os.walk(chemin_racine):
-        imgs = [f for f in files if f.lower().endswith(extensions)]
-        if imgs:
-            print(f"   {root} : {len(imgs)} images  (label={'Tumor' if label==1 else 'Sain'})")
-        for nom in imgs:
-            try:
-                img = Image.open(os.path.join(root, nom)).convert("RGB")
-                X.append(extraire_features(img))
-                y.append(label)
-            except Exception as e:
-                print(f"   Ignore ({nom}) : {e}")
+    if not os.path.exists(chemin):
+        print(f"   Dossier introuvable : {chemin}")
+        return X, y
+
+    fichiers = [f for f in os.listdir(chemin) if f.lower().endswith(extensions)]
+    nom_label = "Tumor" if label == 1 else "Sain"
+    print(f"   {chemin} : {len(fichiers)} images  (label={nom_label})")
+
+    for nom in fichiers:
+        try:
+            img = Image.open(os.path.join(chemin, nom)).convert("RGB")
+            X.append(extraire_features(img))
+            y.append(label)
+        except Exception as e:
+            print(f"   Ignore ({nom}) : {e}")
 
     return X, y
 
 
 # ─────────────────────────────────────────────
-# CHARGEMENT COMPLET TRAIN + TEST
+# CHARGEMENT COMPLET
 # ─────────────────────────────────────────────
 def charger_dataset():
     X_train, y_train = [], []
     X_test,  y_test  = [], []
 
-    print("\n--- Dossier TRAIN ---")
-    # Sain : dataset/train/no/
-    X, y = charger_dossier_recursif(os.path.join(DATASET_PATH, "train", "no"), label=0)
-    X_train.extend(X); y_train.extend(y)
-    # Tumeur : dataset/train/yes/** (glioma, meningioma, pituitary...)
-    X, y = charger_dossier_recursif(os.path.join(DATASET_PATH, "train", "yes"), label=1)
+    print("\n--- Dossier TRAINING ---")
+    # Tumeurs
+    for classe in TUMOR_CLASSES:
+        chemin = os.path.join(DATASET_PATH, TRAIN_FOLDER, classe)
+        X, y = charger_dossier(chemin, label=1)
+        X_train.extend(X); y_train.extend(y)
+    # Sain
+    chemin = os.path.join(DATASET_PATH, TRAIN_FOLDER, NOTUMOR_CLASS)
+    X, y = charger_dossier(chemin, label=0)
     X_train.extend(X); y_train.extend(y)
 
-    print("\n--- Dossier TEST ---")
-    X, y = charger_dossier_recursif(os.path.join(DATASET_PATH, "test", "no"), label=0)
-    X_test.extend(X); y_test.extend(y)
-    X, y = charger_dossier_recursif(os.path.join(DATASET_PATH, "test", "yes"), label=1)
+    print("\n--- Dossier TESTING ---")
+    for classe in TUMOR_CLASSES:
+        chemin = os.path.join(DATASET_PATH, TEST_FOLDER, classe)
+        X, y = charger_dossier(chemin, label=1)
+        X_test.extend(X); y_test.extend(y)
+    chemin = os.path.join(DATASET_PATH, TEST_FOLDER, NOTUMOR_CLASS)
+    X, y = charger_dossier(chemin, label=0)
     X_test.extend(X); y_test.extend(y)
 
     return (np.array(X_train), np.array(y_train),
@@ -115,7 +132,7 @@ if __name__ == "__main__":
     print(f"\nTRAIN : {len(X_train)} images | Tumeur: {sum(y_train==1)} | Sain: {sum(y_train==0)}")
     print(f"TEST  : {len(X_test)}  images | Tumeur: {sum(y_test==1)}  | Sain: {sum(y_test==0)}")
 
-    print(f"\nEntrainement en cours...")
+    print(f"\nEntrainement en cours... (peut prendre 2-3 minutes)")
     model = RandomForestClassifier(
         n_estimators=200,
         max_depth=15,
@@ -127,14 +144,11 @@ if __name__ == "__main__":
     y_pred = model.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
     print(f"\nAccuracy sur le test : {acc*100:.1f}%")
-
-    labels_presents = sorted(set(y_test))
-    noms = {0: "Sain (no)", 1: "Tumor (yes)"}
-    target_names = [noms[l] for l in labels_presents]
-    print("\n" + classification_report(y_test, y_pred, labels=labels_presents, target_names=target_names))
+    print("\n" + classification_report(y_test, y_pred,
+          target_names=["Sain (notumor)", "Tumor"]))
 
     with open(MODEL_OUTPUT, 'wb') as f:
         pickle.dump(model, f)
 
-    print(f"Modele sauvegarde : {MODEL_OUTPUT}")
+    print(f"\nModele sauvegarde : {MODEL_OUTPUT}")
     print("Tu peux maintenant lancer : streamlit run app.py")

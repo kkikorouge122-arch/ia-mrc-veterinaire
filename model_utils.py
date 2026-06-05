@@ -141,6 +141,7 @@ def generer_pdf_neuro(prediction_label, confidence, recommandations):
     ))
 
     return bytes(pdf.output())
+<<<<<<< HEAD
 
 # ─────────────────────────────────────────────
 # CONFIGURATION — Structure dataset/train et dataset/test
@@ -265,3 +266,5 @@ if __name__ == "__main__":
 
     print(f"Modele sauvegarde : {MODEL_OUTPUT}")
     print("Tu peux maintenant lancer : streamlit run app.py")
+=======
+>>>>>>> 6110e8b (Fix model_utils et ajout modele entraine)
