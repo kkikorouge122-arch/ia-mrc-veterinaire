@@ -11,6 +11,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, accuracy_score
 import pickle
 
+# Importation directe de la fonction pour éviter la duplication de code
+from model_utils import extraire_features
+
 # ─────────────────────────────────────────────
 # CONFIGURATION
 # Structure reelle :
@@ -28,34 +31,7 @@ TRAIN_FOLDER    = "Training"
 TEST_FOLDER     = "Testing"
 TUMOR_CLASSES   = ["glioma", "meningioma", "pituitary"]  # label 1
 NOTUMOR_CLASS   = "notumor"                               # label 0
-IMG_SIZE        = (64, 64)
 MODEL_OUTPUT    = "brain_tumor_model.pkl"
-
-
-# ─────────────────────────────────────────────
-# EXTRACTION DES FEATURES
-# ─────────────────────────────────────────────
-def extraire_features(pil_image):
-    img_gray = pil_image.convert("L").resize(IMG_SIZE)
-    arr = np.array(img_gray, dtype=np.float32) / 255.0
-
-    hist, _ = np.histogram(arr, bins=16, range=(0, 1))
-    hist = hist / hist.sum()
-
-    mean         = np.mean(arr)
-    std          = np.std(arr)
-    variance     = np.var(arr)
-    max_val      = np.max(arr)
-    min_val      = np.min(arr)
-    ratio_bright = np.sum(arr > 0.75) / arr.size
-    ratio_dark   = np.sum(arr < 0.20) / arr.size
-    left         = arr[:, :IMG_SIZE[1]//2]
-    right        = arr[:, IMG_SIZE[1]//2:]
-    asymmetry    = abs(np.mean(left) - np.mean(right))
-
-    stats = np.array([mean, std, variance, max_val, min_val,
-                      ratio_bright, ratio_dark, asymmetry])
-    return np.concatenate([hist, stats])
 
 
 # ─────────────────────────────────────────────
