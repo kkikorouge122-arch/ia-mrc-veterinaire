@@ -74,15 +74,48 @@ def load_bio_model():
         return pickle.load(f)
 
 
-def predict_bio(model, params):
-    """
-    params = [age, pression, densite, creatinine, uree, hemoglobine]
-    """
-    features = np.array(params, dtype=np.float32).reshape(1, -1)
+def predict_bio(model, features):
+    import pandas as pd
+    import numpy as np
+
+    # 1. Si les caractéristiques sont un dictionnaire ou une liste, on convertit en DataFrame
+    if isinstance(features, dict):
+        features = pd.DataFrame([features])
+    elif isinstance(features, (list, np.ndarray)):
+        # Si c'est un tableau simple, on l'aligne uniquement sur les valeurs
+        valeurs = np.array(features).reshape(1, -1)
+        prediction = int(model.predict(valeurs)[0])
+        try:
+            confidence = float(max(model.predict_proba(valeurs)[0]))
+        except:
+            confidence = 1.0
+        return prediction, confidence
+
+    # 2. Si le modèle a été entraîné avec des noms de colonnes spécifiques (feature_names_in_)
+    if hasattr(model, "feature_names_in_"):
+        expected_features = model.feature_names_in_
+        
+        # On ajoute les colonnes manquantes avec une valeur par défaut (0)
+        for col in expected_features:
+            if col not in features.columns:
+                features[col] = 0
+                
+        # On conserve uniquement et dans le bon ordre les colonnes attendues
+        features = features[expected_features]
+    else:
+        # Si aucun nom de colonne n'est enregistré, on passe en tableau numpy brut
+        features = features.to_numpy()
+
+    # 3. Exécution de la prédiction sécurisée
     prediction = int(model.predict(features)[0])
-    proba = model.predict_proba(features)[0]
-    confidence = float(proba[prediction]) * 100
+    
+    try:
+        confidence = float(max(model.predict_proba(features)[0]))
+    except:
+        confidence = 1.0 # Valeur par défaut si predict_proba échoue
+        
     return prediction, confidence
+
 
 
 def obtenir_recommandations_bio(prediction, hemoglobine, creatinine, uree):
