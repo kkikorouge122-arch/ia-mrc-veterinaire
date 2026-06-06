@@ -44,9 +44,9 @@ if __name__ == "__main__":
     y = np.where(y_raw < seuil, 1, 0)
     X = df.drop(columns=[TARGET_COL]).values
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
+  X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
     print(f"\nTRAIN : {len(X_train)} | Anomalie: {sum(y_train==1)} | Normal: {sum(y_train==0)}")
     print(f"TEST  : {len(X_test)}  | Anomalie: {sum(y_test==1)}  | Normal: {sum(y_test==0)}")
