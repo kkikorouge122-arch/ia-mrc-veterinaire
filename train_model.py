@@ -1,114 +1,78 @@
 """
 Script d'entrainement - VET-AI Brain Tumor Classifier
-Executer UNE SEULE FOIS : python train_model.py
-Genere le fichier : brain_tumor_model.pkl
+Executer : python train_model.py
+Genere le fichier : brain_tumor_model.pkl a partir de dataset_transposed.csv
 """
 
-import os
+import pandas as pd
 import numpy as np
-from PIL import Image
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, accuracy_score
 import pickle
 
-# Importation directe de la fonction pour éviter la duplication de code
-from model_utils import extraire_features
-
 # ─────────────────────────────────────────────
 # CONFIGURATION
-# Structure reelle :
-#   dataset/Training/glioma/
-#   dataset/Training/meningioma/
-#   dataset/Training/pituitary/
-#   dataset/Training/notumor/
-#   dataset/Testing/glioma/
-#   dataset/Testing/meningioma/
-#   dataset/Testing/pituitary/
-#   dataset/Testing/notumor/
 # ─────────────────────────────────────────────
-DATASET_PATH    = "./dataset"
-TRAIN_FOLDER    = "Training"
-TEST_FOLDER     = "Testing"
-TUMOR_CLASSES   = ["glioma", "meningioma", "pituitary"]  # label 1
-NOTUMOR_CLASS   = "notumor"                               # label 0
-MODEL_OUTPUT    = "brain_tumor_model.pkl"
-
-
-# ─────────────────────────────────────────────
-# CHARGEMENT D'UN DOSSIER
-# ─────────────────────────────────────────────
-def charger_dossier(chemin, label):
-    X, y = [], []
-    extensions = ('.jpg', '.jpeg', '.png', '.bmp')
-
-    if not os.path.exists(chemin):
-        print(f"   Dossier introuvable : {chemin}")
-        return X, y
-
-    fichiers = [f for f in os.listdir(chemin) if f.lower().endswith(extensions)]
-    nom_label = "Tumor" if label == 1 else "Sain"
-    print(f"   {chemin} : {len(fichiers)} images  (label={nom_label})")
-
-    for nom in fichiers:
-        try:
-            img = Image.open(os.path.join(chemin, nom)).convert("RGB")
-            X.append(extraire_features(img))
-            y.append(label)
-        except Exception as e:
-            print(f"   Ignore ({nom}) : {e}")
-
-    return X, y
-
-
-# ─────────────────────────────────────────────
-# CHARGEMENT COMPLET
-# ─────────────────────────────────────────────
-def charger_dataset():
-    X_train, y_train = [], []
-    X_test,  y_test  = [], []
-
-    print("\n--- Dossier TRAINING ---")
-    # Tumeurs
-    for classe in TUMOR_CLASSES:
-        chemin = os.path.join(DATASET_PATH, TRAIN_FOLDER, classe)
-        X, y = charger_dossier(chemin, label=1)
-        X_train.extend(X); y_train.extend(y)
-    # Sain
-    chemin = os.path.join(DATASET_PATH, TRAIN_FOLDER, NOTUMOR_CLASS)
-    X, y = charger_dossier(chemin, label=0)
-    X_train.extend(X); y_train.extend(y)
-
-    print("\n--- Dossier TESTING ---")
-    for classe in TUMOR_CLASSES:
-        chemin = os.path.join(DATASET_PATH, TEST_FOLDER, classe)
-        X, y = charger_dossier(chemin, label=1)
-        X_test.extend(X); y_test.extend(y)
-    chemin = os.path.join(DATASET_PATH, TEST_FOLDER, NOTUMOR_CLASS)
-    X, y = charger_dossier(chemin, label=0)
-    X_test.extend(X); y_test.extend(y)
-
-    return (np.array(X_train), np.array(y_train),
-            np.array(X_test),  np.array(y_test))
-
+CSV_PATH     = "dataset_transposed.csv"
+MODEL_OUTPUT = "brain_tumor_model.pkl"
+TARGET_COL   = "Hemoglobine_g_dL"  # Votre colonne biologique cible
 
 # ─────────────────────────────────────────────
 # ENTRAINEMENT
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
-    print("=" * 50)
-    print("   VET-AI - Entrainement du classificateur")
-    print("=" * 50)
+    print("=" * 60)
+    print("   VET-AI - Entrainement via Parametres Biologiques (CSV)")
+    print("=" * 60)
 
-    X_train, y_train, X_test, y_test = charger_dataset()
-
-    if len(X_train) == 0:
-        print("\nAucune image chargee. Verifie le chemin DATASET_PATH.")
+    # 1. Chargement du fichier CSV propre
+    try:
+        print(f"⏳ Chargement de {CSV_PATH}...")
+        df = pd.read_csv(CSV_PATH)
+    except FileNotFoundError:
+        print(f"❌ Erreur : Le fichier '{CSV_PATH}' est introuvable.")
         exit()
 
-    print(f"\nTRAIN : {len(X_train)} images | Tumeur: {sum(y_train==1)} | Sain: {sum(y_train==0)}")
-    print(f"TEST  : {len(X_test)}  images | Tumeur: {sum(y_test==1)}  | Sain: {sum(y_test==0)}")
+    # Vérification de la présence de la colonne cible
+    if TARGET_COL not in df.columns:
+        print(f"⚠️ Colonne '{TARGET_COL}' non trouvee au debut. Utilisation de la derniere colonne.")
+        TARGET_COL = df.columns[-1]
+        
+    print(f"🎯 Colonne cible utilisee pour le diagnostic : '{TARGET_COL}'")
 
-    print(f"\nEntrainement en cours... (peut prendre 2-3 minutes)")
+    # 2. Nettoyage optionnel des lignes vides (NaN)
+    df = df.dropna(subset=[TARGET_COL])
+
+    # 3. Separation des features (X) et des labels (y)
+    X = df.drop(columns=[TARGET_COL]).values
+    y = df[TARGET_COL].values
+
+    # 4. Encodage automatique si les seuils ou les labels sont textuels
+    # Si la colonne contient des valeurs continues, le classifieur requiert des classes (0 ou 1)
+    if y.dtype == float or y.dtype == int:
+        # Exemple de binarisation si la colonne contient des scores ou des seuils (Sain vs Tumeur)
+        # On suppose ici que vos donnees sont de type 0 (Sain) et 1 (Tumeur)
+        # Si c'est une valeur continue brute, on la convertit selon la mediane ou le seuil adapte
+        if len(np.unique(y)) > 2:
+            seuil_separation = np.median(y)
+            print(f"📊 Ajustement : Conversion des valeurs continues en classes (Seuil Mediane : {seuil_separation})")
+            y = np.where(y > seuil_separation, 1, 0)
+    else:
+        # Si c'est du texte ("Sain", "Tumor")
+        print("🔤 Conversion des labels textuels en valeurs numeriques (0/1)...")
+        y = np.where(pd.Series(y).str.lower().str.contains('notumor|sain|healthy|normal'), 0, 1)
+
+    # 5. Separation Entraînement / Test (80% / 20%)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y if len(np.unique(y)) == 2 else None
+    )
+
+    print(f"\n📈 TRAIN : {len(X_train)} echantillons | Classes uniques : {np.bincount(y_train.astype(int))}")
+    print(f"📉 TEST  : {len(X_test)} echantillons  | Classes uniques : {np.bincount(y_test.astype(int))}")
+
+    # 6. Entraînement du modèle RandomForest
+    print(f"\n🧠 Entrainement du Random Forest en cours...")
     model = RandomForestClassifier(
         n_estimators=200,
         max_depth=15,
@@ -117,14 +81,15 @@ if __name__ == "__main__":
     )
     model.fit(X_train, y_train)
 
+    # 7. Evaluation des performances
     y_pred = model.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
-    print(f"\nAccuracy sur le test : {acc*100:.1f}%")
-    print("\n" + classification_report(y_test, y_pred,
-          target_names=["Sain (notumor)", "Tumor"]))
+    print(f"\n✅ Precision globale (Accuracy) : {acc*100:.2f}%")
+    print("\n" + classification_report(y_test, y_pred, target_names=["Sain (0)", "Tumor (1)"]))
 
+    # 8. Sauvegarde du fichier pickle pour Streamlit
     with open(MODEL_OUTPUT, 'wb') as f:
         pickle.dump(model, f)
 
-    print(f"\nModele sauvegarde : {MODEL_OUTPUT}")
-    print("Tu peux maintenant lancer : streamlit run app.py")
+    print(f"\n💾 Modere sauvegarde avec succes : {MODEL_OUTPUT}")
+    print("🚀 Tout est pret ! Vous pouvez maintenant lancer : streamlit run app.py")
