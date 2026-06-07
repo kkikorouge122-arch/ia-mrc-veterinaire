@@ -75,36 +75,11 @@ def load_bio_model():
     with open(MODEL_PATH_BIO, 'rb') as f:
         return pickle.load(f)
 
-def predict_bio(model, features):
-    import numpy as np
-    import pandas as pd
-
-    # 1. Extraction des valeurs numériques de manière brute
-    if isinstance(features, dict):
-        # On extrait les valeurs dans l'ordre du dictionnaire
-        vals = list(features.values())
-    elif isinstance(features, pd.DataFrame):
-        vals = features.iloc[0].tolist()
-    else:
-        vals = list(features)
-
-    # 2. Sécurisation : on force le format à exactement 5 caractéristiques
-    # Le modèle attend : Age, Pression_Arterielle, Densite_Urinaire, Creatinine_mg_L, Uree_g_L
-    vals = vals[:5]  # On ne garde que les 5 premiers éléments
-    
-    # 3. Conversion en tableau 2D pour scikit-learn
-    input_data = np.array(vals).reshape(1, -1)
-
-    # 4. Prédiction et calcul du score de confiance
-    prediction = int(model.predict(input_data)[0])
-    
-    try:
-        # On extrait la probabilité de la classe prédite
-        probabilities = model.predict_proba(input_data)[0]
-        confidence = float(probabilities[prediction])
-    except Exception:
-        confidence = 1.0
-
+def predict_bio(model, params):
+    features = np.array(params, dtype=np.float32).reshape(1, -1)
+    prediction = int(model.predict(features)[0])
+    proba = model.predict_proba(features)[0]
+    confidence = float(proba[prediction]) * 100
     return prediction, confidence
 
 
